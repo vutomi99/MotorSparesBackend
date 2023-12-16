@@ -33,26 +33,25 @@ module.exports ={
         }
     },
 
-    searchProduct: async(req,res)=>{
+    searchProduct: async (req, res) => {
         try {
-            const result = await Product.aggregate(
-                [
-                    {
-                      $search: {
+            const result = await Product.aggregate([
+                {
+                    $search: {
                         index: "parts",
                         text: {
-                          query: req.param.key,
-                          path: {
-                            wildcard: "*"
-                          }
+                            query: req.params.key,
+                            path: {
+                                wildcard: "*"
+                            }
                         }
-                      }
                     }
-                  ]
-            )
-            res.status(200).json(result) 
+                }
+            ]);
+            res.status(200).json(result);
         } catch (error) {
-            res.status(500).json("Item not found plrase try again")
+            res.status(500).json("Item not found, please try again");
         }
     }
+    
 }
