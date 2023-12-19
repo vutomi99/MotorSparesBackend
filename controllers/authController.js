@@ -1,56 +1,55 @@
 const User = require ('../models/User');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+const CryptoJs =require ('crypto-js')
+const jwt = require ('jsonwebtoken')
 
-module.exports = {
-  createUser: async (req, res) => {
-    try {
-      const hashedPassword = await bcrypt.hash(req.body.password, 10);
-      const newUser = new User({
-        username: req.body.username,
-        email: req.body.email,
-        location: req.body.location,
-        password: hashedPassword,
-      });
 
-      await newUser.save();
+module.exports ={
+    createUser: async (req,res)=>{
+        const newUser =new User({
+            //create a user with a encrypted password 
+            username: req.body.username,
+            email: req.body.email,
+            location: req.body.location,
+            password: CryptoJs.AES.encrypt( req.body.password, process.env.HASH).toString(),
+        });
 
-      res.status(201).json({ message: "User created successfully" });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  },
+        try {
+            await newUser.save()
 
-  loginUser: async (req, res) => {
-    try {
-      const user = await User.findOne({ email: req.body.email });
+            res.status(201).json({message:"User created successfully"})
+        } catch (error) {
+            res.status(500).json({message:error})
+        }
+    },
 
-      if (!user) {
-        return res.status(401).json("Invalid email address");
-      }
+    loginUser: async (req, res) =>{
+        try {
+            //search for a user 
+            const user = await User.findOne({email: req.body.email});
+            !user && res.status(401).json("Wrong credentials provide valide Email!")
+            //Decrrypt password if user is found and convert it to a String 
+            const decryptedPassword = CryptoJs.AES.decrypt( user.password,process.env.HASH);
+            const decryptedpass =  decryptedPassword.toString(CryptoJs.enc.Utf8);
+            //COMPARE decrypted password to the one entered by the user 
+            decryptedpass !==  req.body.password && res.status(401).json("Wrong Password!")
 
-      const isPasswordValid = await bcrypt.compare(
-        req.body.password,
-        user.password
-      );
+            //if the data is correct create a  jwt token 
 
-      if (!isPasswordValid) {
-        return res.status(401).json("Invalid password");
-      }
+            const userToken = jwt.sign(
+                {
+                    id: user.id
+                },process.env.JWT_SEC,{expiresIn:"45d"}
+            );
 
-      const userToken = jwt.sign(
-        { id: user.id },
-        process.env.JWT_SECRET,
-        { expiresIn: "45d" }
-      );
+            //prevent sending back unecessary data to the user 
+            const {password,__v,createdAt,updatedAt, ...userdata} = user._doc
+            //sending back the data to the user
+            res.status(200).json({...userdata, token: userToken})
 
-      const { password, __v, createdAt, updatedAt, ...userData } = user._doc;
 
-      res.status(200).json({ ...userData, token: userToken });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  },
-};
+
+        } catch (error) {
+            res.status(500).json({message:error})
+        }
+    },
+}
