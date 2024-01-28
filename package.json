@@ -48,7 +48,7 @@
     "has-symbols": "^1.0.3",
     "hasown": "^2.0.0",
     "http-errors": "^2.0.0",
-    "iconv-lite": "^0.4.24",
+    "iconv-lite": "^0.6.3",
     "ignore-by-default": "^1.0.1",
     "inherits": "^2.0.4",
     "ipaddr.js": "^1.9.1",
